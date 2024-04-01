@@ -15,7 +15,6 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
@@ -27,7 +26,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -37,6 +35,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # for token authentication
+    'rest_framework',
+    'rest_framework.authtoken',
+    'rest_framework_simplejwt.token_blacklist',
 ]
 
 MIDDLEWARE = [
@@ -70,7 +72,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'web_u_my.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
@@ -80,7 +81,6 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -100,7 +100,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
@@ -114,7 +113,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
@@ -124,3 +122,49 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# 找个空地方直接贴上,其中包含了认证方式和Token的过期时间等
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',  # 使用Token进行身份验证
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',  # 需要进行身份验证的默认权限类
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '100/day',  # 每个用户每天最多可以进行100次请求
+        'anon': '10/day'  # 匿名用户每天最多可以进行10次请求
+    },
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',  # 默认使用JSON渲染器来渲染响应
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',  # 默认使用JSON解析器来解析请求数据
+    ],
+    'DEFAULT_METADATA_CLASS':
+        'rest_framework.metadata.SimpleMetadata',  # 默认使用简单元数据类
+    'DEFAULT_VERSIONING_CLASS':
+        'rest_framework.versioning.URLPathVersioning',  # 使用URL路径版本控制
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'  # 默认使用Django Filter后端来进行过滤
+    ],
+    'DEFAULT_PAGINATION_CLASS':
+        'rest_framework.pagination.PageNumberPagination',  # 默认的分页类为PageNumberPagination
+    'PAGE_SIZE': 10,  # 默认的每页返回的对象数量为10
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',  # 默认使用匿名速率限制类
+        'rest_framework.throttling.UserRateThrottle'  # 默认使用用户速率限制类
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',  # 默认使用AutoSchema来生成API文档
+    'DEFAULT_CONTENT_NEGOTIATION_CLASS': 'rest_framework.negotiation.DefaultContentNegotiation',
+    # 默认使用DefaultContentNegotiation进行内容协商
+    'COERCE_DECIMAL_TO_STRING': False,  # 数字类型是否强制转换为字符串
+    'DATETIME_FORMAT': '%Y-%m-%d %H:%M:%S',  # 默认的日期时间格式
+    'DATETIME_INPUT_FORMATS': [
+        '%Y-%m-%d %H:%M:%S',
+        '%Y-%m-%d %H:%M',
+        '%Y-%m-%d',
+        '%Y%m%dT%H%M%S%fz'
+    ],  # 接受的日期时间输入格式的列表
+    'UNICODE_JSON': False,  # 是否使用Unicode编码的JSON
+}

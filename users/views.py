@@ -58,7 +58,7 @@ class UserRegisterView(APIView):
 
 
 class UsersListView(APIView):
-    authentication_classes = [JwtAuthentication, ]  # 配置自定义jwt认证类
+    # authentication_classes = [JwtAuthentication, ]  # 配置自定义jwt认证类
 
     @handle_validation_error
     def get(self, request):

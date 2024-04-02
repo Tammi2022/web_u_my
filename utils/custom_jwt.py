@@ -9,14 +9,16 @@ from users.models import Users
 class JwtAuthentication(BaseJSONWebTokenAuthentication):
     def authenticate(self, request):
         token = request.META.get('HTTP_Authorization'.upper())
+        if not token:
+            raise AuthenticationFailed('Do not carry token')
         try:
             payload = jwt_decode_handler(token)
         except jwt.ExpiredSignature:
-            raise AuthenticationFailed('过期了')
+            raise AuthenticationFailed('Token expired.')
         except jwt.DecodeError:
-            raise AuthenticationFailed('解码错误')
+            raise AuthenticationFailed('Token decoding error')
         except jwt.InvalidTokenError:
-            raise AuthenticationFailed('不合法的token')
+            raise AuthenticationFailed('Illegal token')
         user = Users.authenticate_credentials(payload)
         if user:
             # 认证通过，生成 token 并返回

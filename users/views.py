@@ -6,6 +6,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from users.models import Users
+from users.serializers import LoginSerializer, RegisterSerializer
+from utils.api_exception import handle_validation_error
+from utils.api_response import CustomResponse
 from utils.custom_jwt import JWTHelper
 
 
@@ -15,39 +18,41 @@ class UserLoginView(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [AllowAny]  # 允许任何用户执行该操作
 
+    @handle_validation_error
     def post(self, request):
-        phone = request.data.get('phone')
-        pwd = request.data.get('pwd')
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        phone = serializer.data.get('phone')
+        pwd = serializer.data.get('pwd')
 
         # 根据自定义用户模型查询用户
         user = Users.objects.get(phone=phone)
-
         # 验证密码
         if check_password(pwd, user.pwd):
             # 生成 JWT
             jwt_token = JWTHelper.generate_token(user)
-            return Response({'token': jwt_token}, status=status.HTTP_200_OK)
-        else:
-            return Response({"error": "Invalid username or password"}, status=status.HTTP_401_UNAUTHORIZED)
+            # 登录成功，返回自定义响应
+            return CustomResponse.generate_response(data={'token': jwt_token}, message='Login successful')
+        return CustomResponse.generate_response(message='Unauthorized',
+                                                status_code=status.HTTP_401_UNAUTHORIZED, error=True)
 
 
 class UserRegisterView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]  # 允许任何用户执行该操作
 
+    @handle_validation_error
     def post(self, request):
-        name = request.data.get('name')
-        pwd = request.data.get('pwd')
-        phone = request.data.get('phone')
-
-        # 检查用户名是否已存在
-        if Users.objects.filter(phone=phone).exists():
-            return Response({"error": "Userphone already exists"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        phone = serializer.data.get('phone')
+        pwd = serializer.data.get('pwd')
+        name = serializer.data.get('name')
 
         # 创建新用户并设置密码（安全哈希）
         hashed_pwd = make_password(pwd)
         user = Users.objects.create(phone=phone, name=name, pwd=hashed_pwd)
-
-        # 生成 JWT
         jwt_token = JWTHelper.generate_token(user)
-        return Response({'token': jwt_token}, status=status.HTTP_201_CREATED)
+
+        return CustomResponse.generate_response(data={'token': jwt_token}, message='Registration successful')

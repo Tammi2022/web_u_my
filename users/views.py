@@ -60,7 +60,7 @@ class UsersListView(APIView):
     @handle_validation_error
     def get(self, request):
         users = Users.objects.all()
-        serializer = UsersSerializer(users, many=True) # many是指的给多个对象
+        serializer = UsersSerializer(users, many=True)  # many是指的给多个对象
         return CustomResponse.generate_response(data=serializer.data, message='successful')
 
 
@@ -70,3 +70,19 @@ class UsersDetailsView(APIView):
         user = Users.objects.get(id=id)
         serializer = UsersSerializer(user, many=False)
         return CustomResponse.generate_response(data=serializer.data, message='successful')
+
+    @handle_validation_error
+    def put(self, request, id):
+        user = Users.objects.get(id=id)
+        serializer = UsersSerializer(user, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return CustomResponse.generate_response(data=serializer.data, message='User details updated successfully')
+
+    @handle_validation_error
+    def patch(self, request, id):
+        user = Users.objects.get(id=id)
+        serializer = UsersSerializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return CustomResponse.generate_response(data=serializer.data, message='User details updated successfully')

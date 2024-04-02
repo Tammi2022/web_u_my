@@ -9,10 +9,17 @@ def handle_validation_error(view_func):
         try:
             return view_func(*args, **kwargs)
         except ValidationError as e:
-            # 校验不通过，获取错误信息
-            error_detail = e.detail.get('non_field_errors')
-            error_message = ', '.join(error_detail) if isinstance(error_detail, list) else error_detail
-            return CustomResponse.generate_response(message=error_message, status_code=status.HTTP_400_BAD_REQUEST,
-                                                    error=True)
+            error_detail = e.detail
+            # 检查是否存在与特定字段相关的错误
+            field_errors = {}
+            if isinstance(error_detail, dict):
+                for field, errors in error_detail.items():
+                    if field == 'non_field_errors':
+                        field_errors[field] = ', '.join(errors)
+                    else:
+                        # 将错误消息连接成一个字符串
+                        field_errors[field] = ', '.join(errors) if isinstance(errors, list) else errors
+            return CustomResponse.generate_response(data=field_errors, message='Validation error',
+                                                    status_code=status.HTTP_400_BAD_REQUEST, error=True)
 
     return wrapper

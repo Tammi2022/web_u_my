@@ -43,7 +43,32 @@ class RegisterSerializer(serializers.Serializer):
 
         return data
 
+
 class UsersSerializer(serializers.ModelSerializer):
+    created_at = serializers.DateTimeField(read_only=True)  # 将created_at字段设置为只读
+
+    def validate(self, data):
+        """
+        验证数据，确保电话号码的唯一性
+        """
+        phone = data.get('phone')
+        if phone:
+            existing_users = Users.objects.filter(phone=phone)
+            if self.instance:  # 如果是更新操作，则排除当前用户
+                existing_users = existing_users.exclude(pk=self.instance.pk)
+
+            if existing_users.exists():
+                raise ValidationError({"phone": ["Phone number already exists."]})
+        # 自定义验证逻辑：用户名不能为"admin"
+        if data.get('name') == 'admin':
+            raise ValidationError("Name cannot be 'admin'")
+
+        return data
+
     class Meta:
         model = Users
-        fields = '__all__'
+        fields = ['name', 'phone', 'created_at']
+        extra_kwargs = {
+            'email': {'required': False},
+            'phone': {'required': False},
+        }

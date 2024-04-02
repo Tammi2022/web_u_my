@@ -42,3 +42,8 @@ class RegisterSerializer(serializers.Serializer):
             raise ValidationError("Userphone already exists")
 
         return data
+
+class UsersSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Users
+        fields = '__all__'

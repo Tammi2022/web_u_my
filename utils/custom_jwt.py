@@ -1,23 +1,29 @@
-from django.conf import settings
+from rest_framework_jwt.utils import jwt_decode_handler, jwt_encode_handler
 import jwt
-from datetime import datetime, timedelta
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_jwt.authentication import BaseJSONWebTokenAuthentication
+
+from users.models import Users
 
 
-class JWTHelper:
-    @staticmethod
-    def generate_token(user):
-        payload = {
-            'user_id': user.id,
-            'exp': datetime.utcnow() + timedelta(days=1)  # 设置过期时间为1天
-        }
-        return jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
-
-    @staticmethod
-    def decode_token(token):
+class JwtAuthentication(BaseJSONWebTokenAuthentication):
+    def authenticate(self, request):
+        token = request.META.get('HTTP_Authorization'.upper())
         try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            return payload['user_id']
-        except jwt.ExpiredSignatureError:
-            return 'Signature has expired. Please log in again.'
+            payload = jwt_decode_handler(token)
+        except jwt.ExpiredSignature:
+            raise AuthenticationFailed('过期了')
+        except jwt.DecodeError:
+            raise AuthenticationFailed('解码错误')
         except jwt.InvalidTokenError:
-            return 'Invalid token. Please log in again.'
+            raise AuthenticationFailed('不合法的token')
+        user = Users.authenticate_credentials(payload)
+        if user:
+            # 认证通过，生成 token 并返回
+            payload = {
+                'id': user.id,
+            }
+            token = jwt_encode_handler(payload)
+            return (user, token)
+        # 认证失败，返回错误信息或者抛出异常
+        raise AuthenticationFailed("Invalid credentials")

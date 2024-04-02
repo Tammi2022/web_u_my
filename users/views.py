@@ -1,21 +1,21 @@
 from django.contrib.auth.hashers import make_password, check_password
 from rest_framework import status
-from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_jwt.utils import jwt_encode_handler
+from rest_framework_jwt.views import obtain_jwt_token
 
 from users.models import Users
-from users.serializers import LoginSerializer, RegisterSerializer
+from users.serializers import LoginSerializer, RegisterSerializer, UsersSerializer
 from utils.api_exception import handle_validation_error
 from utils.api_response import CustomResponse
-from utils.custom_jwt import JWTHelper
+from utils.custom_jwt import JwtAuthentication
 
 
 # Create your views here.
 
 class UserLoginView(APIView):
-    authentication_classes = [TokenAuthentication]
+    authentication_classes = []
     permission_classes = [AllowAny]  # 允许任何用户执行该操作
 
     @handle_validation_error
@@ -26,14 +26,14 @@ class UserLoginView(APIView):
         phone = serializer.data.get('phone')
         pwd = serializer.data.get('pwd')
 
-        # 根据自定义用户模型查询用户
         user = Users.objects.get(phone=phone)
-        # 验证密码
         if check_password(pwd, user.pwd):
-            # 生成 JWT
-            jwt_token = JWTHelper.generate_token(user)
-            # 登录成功，返回自定义响应
-            return CustomResponse.generate_response(data={'token': jwt_token}, message='Login successful')
+            payload = {
+                'id': user.id,
+            }
+            # 生成token
+            token = jwt_encode_handler(payload)
+            return CustomResponse.generate_response(data={'token': token}, message='Login successful')
         return CustomResponse.generate_response(message='Unauthorized',
                                                 status_code=status.HTTP_401_UNAUTHORIZED, error=True)
 
@@ -53,6 +53,15 @@ class UserRegisterView(APIView):
         # 创建新用户并设置密码（安全哈希）
         hashed_pwd = make_password(pwd)
         user = Users.objects.create(phone=phone, name=name, pwd=hashed_pwd)
-        jwt_token = JWTHelper.generate_token(user)
 
-        return CustomResponse.generate_response(data={'token': jwt_token}, message='Registration successful')
+        return CustomResponse.generate_response(data={'id': user.id}, message='Registration successful')
+
+
+class UsersListView(APIView):
+    authentication_classes = [JwtAuthentication, ]  # 配置自定义jwt认证类
+
+    @handle_validation_error
+    def get(self, request):
+        users = Users.objects.all()
+        serializer = UsersSerializer(users, many=True)
+        return CustomResponse.generate_response(data=serializer.data, message='successful')

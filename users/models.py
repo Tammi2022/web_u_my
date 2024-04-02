@@ -31,3 +31,14 @@ class Users(TimeMixin):
         db_table = 'users'
         verbose_name = 'users'
         verbose_name_plural = 'users'
+
+    @classmethod
+    def authenticate_credentials(cls, payload):
+        try:
+            # 尝试根据载荷中的用户 id 找到对应的用户
+            user = cls.objects.get(id=payload['id'])
+            # 检查用户是否存在
+            if user:
+                return user  # 如果存在，则返回用户对象
+        except cls.DoesNotExist:
+            return None  # 如果找不到对应的用户，则返回 None

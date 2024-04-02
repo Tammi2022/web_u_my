@@ -3,15 +3,14 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework_jwt.utils import jwt_encode_handler
-from rest_framework_jwt.views import obtain_jwt_token
 
 from users.models import Users
 from users.serializers import LoginSerializer, RegisterSerializer, UsersSerializer
 from utils.api_exception import handle_validation_error
 from utils.api_response import CustomResponse
-from utils.custom_jwt import JwtAuthentication
 
 
+# authentication_classes = [JwtAuthentication, ]  # 配置自定义jwt认证类
 # Create your views here.
 
 class UserLoginView(APIView):
@@ -58,10 +57,16 @@ class UserRegisterView(APIView):
 
 
 class UsersListView(APIView):
-    # authentication_classes = [JwtAuthentication, ]  # 配置自定义jwt认证类
-
     @handle_validation_error
     def get(self, request):
         users = Users.objects.all()
-        serializer = UsersSerializer(users, many=True)
+        serializer = UsersSerializer(users, many=True) # many是指的给多个对象
+        return CustomResponse.generate_response(data=serializer.data, message='successful')
+
+
+class UsersDetailsView(APIView):
+    @handle_validation_error
+    def get(self, request, id):
+        user = Users.objects.get(id=id)
+        serializer = UsersSerializer(user, many=False)
         return CustomResponse.generate_response(data=serializer.data, message='successful')

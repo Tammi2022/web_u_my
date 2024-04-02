@@ -72,14 +72,6 @@ class UsersDetailsView(APIView):
         return CustomResponse.generate_response(data=serializer.data, message='successful')
 
     @handle_validation_error
-    def put(self, request, id):
-        user = Users.objects.get(id=id)
-        serializer = UsersSerializer(user, data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return CustomResponse.generate_response(data=serializer.data, message='User details updated successfully')
-
-    @handle_validation_error
     def patch(self, request, id):
         user = Users.objects.get(id=id)
         serializer = UsersSerializer(user, data=request.data, partial=True)

@@ -1,3 +1,5 @@
+import re
+
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -38,37 +40,41 @@ class RegisterSerializer(serializers.Serializer):
         if len(phone) < 1:
             raise ValidationError("Phone must be at least 1 characters long.")
 
-        if Users.objects.filter(phone=phone).exists():
-            raise ValidationError("Userphone already exists")
-
         return data
 
 
+def vali_user_name(name):
+    if name and name == 'admin':
+        raise ValidationError("Name field cannot be 'admin'.")
+
+
+def vali_user_phone(phone):
+    if Users.objects.filter(phone=phone).exists():
+        raise ValidationError("Userphone already exists")
+
+
+def vali_user_email(email):
+    if not re.match(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', email):
+        raise ValidationError("Invalid email format.")
+
+
 class UsersSerializer(serializers.ModelSerializer):
-    created_at = serializers.DateTimeField(read_only=True)  # 将created_at字段设置为只读
+    creationTime = serializers.IntegerField(read_only=True)
+    lastUpdateTime = serializers.IntegerField(read_only=True)
 
     def validate(self, data):
-        """
-        验证数据，确保电话号码的唯一性
-        """
         phone = data.get('phone')
-        if phone:
-            existing_users = Users.objects.filter(phone=phone)
-            if self.instance:  # 如果是更新操作，则排除当前用户
-                existing_users = existing_users.exclude(pk=self.instance.pk)
-
-            if existing_users.exists():
-                raise ValidationError({"phone": ["Phone number already exists."]})
-        # 自定义验证逻辑：用户名不能为"admin"
-        if data.get('name') == 'admin':
-            raise ValidationError("Name cannot be 'admin'")
-
+        name = data.get('name')
+        email = data.get('email')
+        vali_user_name(name)
+        if Users.objects.filter(phone=phone).exclude(id=self.instance.id if self.instance else None).exists():
+            raise serializers.ValidationError("Phone number already exists.")
+        if email:
+            vali_user_email(email)
+            if Users.objects.filter(email=email).exclude(id=self.instance.id if self.instance else None).exists():
+                raise ValidationError("Email already exists.")
         return data
 
     class Meta:
         model = Users
-        fields = ['name', 'phone', 'created_at']
-        extra_kwargs = {
-            'email': {'required': False},
-            'phone': {'required': False},
-        }
+        fields = ['name', 'phone', 'email', 'address', 'age', 'gender', 'creationTime', 'lastUpdateTime']

@@ -19,14 +19,24 @@ class TimeMixin(models.Model):
         default=time.time,
     )
 
-    def save_times(self):
-        """ Saves the time fields. Must be called when the subclassing model
-        saves. """
-        if self.creationTime is None:
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            # 对象还未保存，因此设置 creationTime 和 lastUpdateTime
             self.creationTime = time.time()
-
-        if self.lastUpdateTime is None:
             self.lastUpdateTime = time.time()
+        else:
+            # 对象已存在，只更新 lastUpdateTime
+            self.lastUpdateTime = time.time()
+        super().save(*args, **kwargs)
+
+    # def save_times(self):
+    #     """ Saves the time fields. Must be called when the subclassing model
+    #     saves. """
+    #     if self.creationTime is None:
+    #         self.creationTime = time.time()
+    #
+    #     if self.lastUpdateTime is None:
+    #         self.lastUpdateTime = time.time()
 
     class Meta:
         abstract = True
